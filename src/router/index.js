@@ -3,6 +3,7 @@ import Recommend from '@/views/recommend'
 import TopList from '@/views/top-list'
 import Search from '@/views/search'
 import Singer from '@/views/singer'
+import SingerDetail from '@/views/SingerDetail'
 
 const routes = [{
   path: '/',
@@ -13,7 +14,13 @@ const routes = [{
   component: Recommend
 }, {
   path: '/singer',
-  component: Singer
+  component: Singer,
+  children: [
+    {
+      path: 'id',
+      component: SingerDetail
+    }
+  ]
 }, {
   path: '/top-list',
   component: TopList
