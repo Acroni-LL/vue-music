@@ -21,6 +21,7 @@
       class="list"
       :style='scrollStyle'
       v-loading='loading'
+      v-no-result:[noResultText]='noResult'
       :probe-type='3'
       @scroll='onScroll'
     >
@@ -50,7 +51,11 @@ export default {
     },
     title: String,
     pic: String,
-    loading: Boolean
+    loading: Boolean,
+    noResultText: {
+      type: String,
+      default: 'sorry,no searching song'
+    }
   },
   data () {
     return {
@@ -60,6 +65,9 @@ export default {
     }
   },
   computed: {
+    noResult () {
+      return !this.loading && !this.songs.lengs
+    },
     bgImageStyle () {
       const scrollY = this.scrollY
       let zIndex = 0
