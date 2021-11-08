@@ -19,6 +19,17 @@
           <h2 class="subtitle">{{currentSong.singer}} </h2>
         </div>
         <div class="bottom">
+          <div class="progress-wrapper">
+            <span class="time time-l">{{fromatTime(currentTime)}} </span>
+            <div class="progress-bar-wrapper">
+              <progress-bar
+                :progress='progress'
+                @progress-changing='onProgressChanging'
+                @progress-changed='onProgressChanged'
+              ></progress-bar>
+            </div>
+            <span class="time time-r">{{fromatTime(currenttSong.duration)}} </span>
+          </div>
           <div class="operators">
             <div class="icon i-left">
               <i
@@ -54,7 +65,10 @@
               ></i>
             </div>
             <div class="icon i-right">
-              <i class="icon-not-favorite"></i>
+              <i
+                :class="getFavoriteIcon(currentSong)"
+                @click="toggleFavorite(currentSong)"
+              ></i>
             </div>
           </div>
         </div>
@@ -65,6 +79,8 @@
       ref='audioRef'
       @pause="pause"
       @error="error"
+      @timeupdate='updateTime'
+      @end='end'
     ></audio>
   </div>
 </template>
@@ -73,24 +89,40 @@
 import { computed, watch, ref } from 'vue'
 import { useStore } from 'vuex'
 import { useMode, changeMode } from './use-mode'
+import useFavorite from './use-favorite'
+import ProgressBar from './progress-bar'
+import { formatTime } from '@/assets/js/util'
+import { PLAY_MODE } from '@/assets/js/constant'
+
 export default {
   name: 'player',
+  components: {
+    ProgressBar
+  },
   setup () {
+    // data
     const audioRef = ref(null)
     const songReady = ref(false)
+    const currentTime = ref(0)
+    let progressChanging = false
     // vuex
     const store = useStore()
+    const playMode = computed(() => store.state.playMode)
     const fullScreen = computed(() => store.state.fullScreen)
     const currentSong = computed(() => store.getters.currentSong)
     const playing = computed(() => store.state.playing)
     // hooks
     const { modeIcon } = useMode()
+    const { getFavoriteIocn, toggleFavorite } = useFavorite()
     // computed
     const playlist = computed(() => store.state.playlist)
     const playIcon = computed(() => {
       return playing.value ? 'icon-pause' : 'icon-play'
     })
     const currentIndex = computed(() => store.state.currentIndex)
+    const progress = computed(() => {
+      return currentTime.value / currentSong.value.duration
+    })
     const disableCls = computed(() => {
       return songReady.value ? '' : 'disable'
     })
@@ -99,6 +131,7 @@ export default {
       if (!newSong.id || !newSong.url) {
         return
       }
+      currentTime.value = 0
       songReady.value = false
       const audioEl = audioRef.value
       audioEl.src = newSong.url
@@ -162,6 +195,7 @@ export default {
       const audioEl = audioRef.value
       audioEl.currentTime = 0
       audioEl.play()
+      store.commit('setPlayState', true)
     }
     function ready () {
       if (!songReady.value) {
@@ -172,9 +206,36 @@ export default {
     function error () {
       songReady.value = true
     }
+    function updateTime (e) {
+      if (!progressChanging) {
+        currentTime.value = e.target.currentTime
+      }
+      currentTime.value = e.targrt.currentTime
+    }
+    function onProgressChanging (progress) {
+      progressChanging = true
+      currentTime.value = currentSong.value.duration * progress
+    }
+    function onProgressChanged (progress) {
+      progressChanging = false
+      audioRef.value.currentTime = currentTime.value = currentSong.value.duration * progress
+      if (!playing.value) {
+        store.commit('setPlayingState', true)
+      }
+    }
+    function end () {
+      currentTime.value = 0
+      if (playMode.value === PLAY_MODE.loop) {
+        loop()
+      } else {
+        next()
+      }
+    }
     return {
       playIcon,
       goBack,
+      progress,
+      currentTime,
       audioRef,
       fullScreen,
       currentSong,
@@ -183,11 +244,18 @@ export default {
       prev,
       next,
       ready,
+      formatTime,
+      onProgressChanging,
+      onProgressChanged,
+      end,
+      updateTime,
       disableCls,
       error,
       // 来自hooks
       modeIcon,
-      changeMode
+      changeMode,
+      getFavoriteIocn,
+      toggleFavorite
     }
   }
 }
