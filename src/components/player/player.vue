@@ -18,6 +18,37 @@
           <h1 class="title">{{currentSong.name}} </h1>
           <h2 class="subtitle">{{currentSong.singer}} </h2>
         </div>
+        <div class="middle">
+          <div class="midlle-l">
+            <div class="cd-wrapper">
+              <div
+                ref="cdRef"
+                class="cd"
+              >
+                <img
+                  ref="cdImgRef"
+                  :src='currentSong.pic'
+                  class="image"
+                  :class="cdCls"
+                >
+              </div>
+            </div>
+          </div>
+        </div>
+        <scroll class="middle-r">
+          <div class="lyric-wrapper">
+            <div v-if="currentLyric">
+              <p
+                class="text"
+                :class="{'current':currentLineNum===index}"
+                v-for="(line,index) in currentLyric.lines"
+                :key="line.num"
+              >
+                {{line.txt}}
+              </p>
+            </div>
+          </div>
+        </scroll>
         <div class="bottom">
           <div class="progress-wrapper">
             <span class="time time-l">{{fromatTime(currentTime)}} </span>
@@ -91,13 +122,17 @@ import { useStore } from 'vuex'
 import { useMode, changeMode } from './use-mode'
 import useFavorite from './use-favorite'
 import ProgressBar from './progress-bar'
+import useLyric from './use-lyric'
+import Scroll from '@/components/base/scroll/scroll'
 import { formatTime } from '@/assets/js/util'
 import { PLAY_MODE } from '@/assets/js/constant'
+import useCd from './use-cd'
 
 export default {
   name: 'player',
   components: {
-    ProgressBar
+    ProgressBar,
+    Scroll
   },
   setup () {
     // data
@@ -113,7 +148,9 @@ export default {
     const playing = computed(() => store.state.playing)
     // hooks
     const { modeIcon } = useMode()
+    const { cdCls, cdImgRef, cdRef } = useCd()
     const { getFavoriteIocn, toggleFavorite } = useFavorite()
+    const { currentLyric, currentLineNum, playLyric } = useLyric({ songReady, currentTime })
     // computed
     const playlist = computed(() => store.state.playlist)
     const playIcon = computed(() => {
@@ -202,6 +239,7 @@ export default {
         return
       }
       songReady.value = true
+      playLyric()
     }
     function error () {
       songReady.value = true
@@ -255,11 +293,21 @@ export default {
       modeIcon,
       changeMode,
       getFavoriteIocn,
-      toggleFavorite
+      toggleFavorite,
+      // cd
+      cdCls,
+      cdRef,
+      cdImgRef,
+      // lyric
+      currentLyric,
+      currentLineNum
     }
   }
 }
 </script>
 
-<style>
+<style lang="scss" scoped>
+.playing {
+  animation: rotate 20s linear infinite;
+}
 </style>
