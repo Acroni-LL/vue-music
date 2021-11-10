@@ -1,5 +1,8 @@
 <template>
-  <div class="player">
+  <div
+    class="player"
+    v-show="playlist.length"
+  >
     <div
       class="normal-player"
       v-show="fullScreen"
@@ -18,8 +21,16 @@
           <h1 class="title">{{currentSong.name}} </h1>
           <h2 class="subtitle">{{currentSong.singer}} </h2>
         </div>
-        <div class="middle">
-          <div class="midlle-l">
+        <div
+          class="middle"
+          @touchstart.prevent='onMiddleTouchStart'
+          @touchmove.prevent='onMiddleTouchMove'
+          @touchend.prevent='onMiddleTouchEnd'
+        >
+          <div
+            class="midlle-l"
+            :style="middleLStyle"
+          >
             <div class="cd-wrapper">
               <div
                 ref="cdRef"
@@ -35,9 +46,16 @@
             </div>
           </div>
         </div>
-        <scroll class="middle-r">
+        <scroll
+          class="middle-r"
+          ref="lyricScrollRef"
+          :style="middleRStyle"
+        >
           <div class="lyric-wrapper">
-            <div v-if="currentLyric">
+            <div
+              v-if="currentLyric"
+              ref="lyricListRef"
+            >
               <p
                 class="text"
                 :class="{'current':currentLineNum===index}"
@@ -47,10 +65,25 @@
                 {{line.txt}}
               </p>
             </div>
+            <div
+              class="pure-music"
+              v-show="pureMusicLyric"
+            >
+              <p>{{pureMusicLyric}} </p>
+            </div>
           </div>
         </scroll>
         <div class="bottom">
-          <div class="progress-wrapper">
+          <span
+            class="dot"
+            :class="{'active':currentShow==='cd'}"
+          ></span>
+          <span
+            class="dot"
+            :class="{'active':currentShow==='lyric'}"
+          ></span>
+          <div class="
+            progress-wrapper">
             <span class="time time-l">{{fromatTime(currentTime)}} </span>
             <div class="progress-bar-wrapper">
               <progress-bar
@@ -105,6 +138,10 @@
         </div>
       </template>
     </div>
+    <mini-player
+      :progress='progress'
+      :toggle-play='togglePlay'
+    ></mini-player>
     <audio
       @canplay="ready"
       ref='audioRef'
@@ -123,16 +160,19 @@ import { useMode, changeMode } from './use-mode'
 import useFavorite from './use-favorite'
 import ProgressBar from './progress-bar'
 import useLyric from './use-lyric'
+import useMiddleInteractive from './use-middle-interactive'
 import Scroll from '@/components/base/scroll/scroll'
 import { formatTime } from '@/assets/js/util'
 import { PLAY_MODE } from '@/assets/js/constant'
 import useCd from './use-cd'
+import MiniPlayer from './mini-player'
 
 export default {
   name: 'player',
   components: {
     ProgressBar,
-    Scroll
+    Scroll,
+    MiniPlayer
   },
   setup () {
     // data
@@ -150,7 +190,8 @@ export default {
     const { modeIcon } = useMode()
     const { cdCls, cdImgRef, cdRef } = useCd()
     const { getFavoriteIocn, toggleFavorite } = useFavorite()
-    const { currentLyric, currentLineNum, playLyric } = useLyric({ songReady, currentTime })
+    const { currentLyric, currentLineNum, playLyric, lyricScrollRef, lyricListRef, stopLyric, pureMusicLyric, playingLyric } = useLyric({ songReady, currentTime })
+    const { currentShow, onMiddleTouchStart, onMiddleTouchEnd, onMiddleTouchMove, middleLStyle, middleRStyle } = useMiddleInteractive()
     // computed
     const playlist = computed(() => store.state.playlist)
     const playIcon = computed(() => {
@@ -179,7 +220,13 @@ export default {
         return
       }
       const audioEl = audioRef.value
-      newPlaying ? audioEl.play() : audioEl.pause()
+      if (!newPlaying) {
+        audioEl.play()
+        playLyric()
+      } else {
+        audioEl.pause()
+        stopLyric()
+      }
     })
     // methods
     function goBack () {
@@ -253,6 +300,8 @@ export default {
     function onProgressChanging (progress) {
       progressChanging = true
       currentTime.value = currentSong.value.duration * progress
+      playLyric()
+      stopLyric()
     }
     function onProgressChanged (progress) {
       progressChanging = false
@@ -260,6 +309,7 @@ export default {
       if (!playing.value) {
         store.commit('setPlayingState', true)
       }
+      playLyric()
     }
     function end () {
       currentTime.value = 0
@@ -273,6 +323,7 @@ export default {
       playIcon,
       goBack,
       progress,
+      playlist,
       currentTime,
       audioRef,
       fullScreen,
@@ -300,7 +351,18 @@ export default {
       cdImgRef,
       // lyric
       currentLyric,
-      currentLineNum
+      currentLineNum,
+      lyricScrollRef,
+      playingLyric,
+      lyricListRef,
+      pureMusicLyric,
+      // middle-interactive
+      currentShow,
+      onMiddleTouchStart,
+      onMiddleTouchEnd,
+      onMiddleTouchMove,
+      middleLStyle,
+      middleRStyle
     }
   }
 }
