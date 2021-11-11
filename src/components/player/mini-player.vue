@@ -5,7 +5,10 @@
       v-show="!fullScreen"
       @click="showNormalPlayer"
     >
-      <div class="cd-wrapper">
+      <div
+        ref='sliderWrapperRef'
+        class="cd-wrapper"
+      >
         <div
           class="cd"
           ref='cdRef'
@@ -32,20 +35,28 @@
           ></i>
         </progress-circle>
       </div>
+      <div
+        class="control"
+        @click.stop="showPlaylist"
+      ></div>
+      <Playlist ref="playlistRef"></Playlist>
     </div>
   </transition>
 </template>
 
 <script>
 import { useStore } from 'vuex'
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
+import useMiniSlider from './use-mini-slider'
 import useCd from './use-cd'
 import ProgressCircle from './progress-circle.vue'
+import Playlist from './playlist'
 
 export default {
   name: 'mini-player',
   components: {
-    ProgressCircle
+    ProgressCircle,
+    Playlist
   },
   props: {
     progress: {
@@ -55,11 +66,14 @@ export default {
     togglePlay: Function
   },
   setup () {
+    const playlistRef = ref(null)
     const store = useStore()
+    const { cdCls, cdRef, cdImageRef } = useCd()
     const fullScreen = computed(() => store.state.fullScreen)
     const currentSong = computed(() => store.getters.currentSong)
     const playing = computed(() => store.state.playing)
-    const { cdCls, cdRef, cdImageRef } = useCd()
+    const playlist = computed(() => store.state.playlist)
+    const { sliderWrapperRef } = useMiniSlider()
 
     const miniPlayIcon = computed(() => {
       return playing.value ? 'icon-pause-mini' : 'icon-play-mini'
@@ -68,15 +82,25 @@ export default {
     function showNormalPlayer () {
       store.commit('setFullScreen', true)
     }
+
+    function showPlaylist () {
+      playlistRef.value.show()
+    }
+
     return {
       fullScreen,
       currentSong,
+      playlistRef,
       miniPlayIcon,
+      playlist,
       showNormalPlayer,
+      showPlaylist,
       // cd
       cdCls,
       cdRef,
-      cdImageRef
+      cdImageRef,
+      // sliderWrapperRef
+      sliderWrapperRef
     }
   }
 }
