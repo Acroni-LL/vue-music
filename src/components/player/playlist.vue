@@ -6,27 +6,40 @@
         v-show="visible && playlist.length"
         @click="hide"
       >
-        <div class="list-wrapper">
+        <div
+          class="list-wrapper"
+          @click.stop
+        >
           <div class="list-header">
             <h1 class="title">
               <i
                 class="icon"
                 :class="madeIcon"
-                @click.stop='changeMode'
+                @click='changeMode'
+              ></i>
+              <span class="text">{{modeText}} </span>
+              <span
+                class="clear"
+                @click="ShowConfirm"
               >
-                <span class="text">{{modeText}} </span>
-              </i>
+                <i class="icon-clear"></i>
+              </span>
             </h1>
           </div>
           <scroll
             ref="scrollRef"
             class="list-content"
           >
-            <ul>
+            <transition-group
+              ref="listRef"
+              name='list'
+              tag='ul'
+            >
               <li
                 v-for="song in sequenceList"
                 :key="song.id"
                 class="item"
+                @click="selectItem(song)"
               >
                 <i
                   class="current"
@@ -39,8 +52,15 @@
                 >
                   <i :class="getFavoriteIcon(song)"></i>
                 </span>
+                <span
+                  class="delete"
+                  @click.stop="removeSong(song)"
+                  :class="{'disable':removing}"
+                >
+                  <i class="icon-delete"></i>
+                </span>
               </li>
-            </ul>
+            </transition-group>
           </scroll>
           <div
             class="list-footer"
@@ -49,6 +69,14 @@
             <span>关闭</span>
           </div>
         </div>
+        <confirm
+          ref='confirmRef'
+          text='是否清空列表'
+          @click="confirmClear"
+          confirm-btn-text='清空'
+        >
+
+        </confirm>
       </div>
     </transition>
   </teleport>
@@ -60,26 +88,48 @@ import { ref, computed, nextTick } from 'vue'
 import { useStore } from 'vuex'
 import useMode from './use-mode'
 import useFavorite from './use-favorite'
+import confirm from '@/components/base/confirm/confirm'
 
 export default {
   name: 'playlist',
   components: {
-    Scroll
+    Scroll,
+    confirm
   },
   setup () {
     const visible = ref(false)
     const scrollRef = ref(null)
+    const removing = ref(false)
+    const listRef = ref(null)
+    const confirmRef = ref(null)
+
     const store = useStore()
     const playlist = computed(() => store.state.playlist)
     const sequenceList = computed(() => store.state.sequenceList)
     const currentSong = computed(() => store.getters.currentSong)
-    const { modeIcon, changeMode, modeText } = useMode()
+    const { modeIcon, changeMode, modeText, watch } = useMode()
     const { getFavoriteIcon, toggleFavorite } = useFavorite()
+
+    watch(currentSong, async (newSong) => {
+      if (!visible.value || newSong.id) {
+        return
+      }
+      await nextTick()
+      scrollToCurrent()
+    })
 
     function getCurrentIcon (song) {
       if (song.id === currentSong.value.id) {
         return 'icon-play'
       }
+    }
+
+    function selectItem (song) {
+      const index = playlist.value.findIndex((item) => {
+        return song.id === item.id
+      })
+      store.commit('setCurrentIndex', index)
+      store.commit('setPlayingState', true)
     }
 
     function hide () {
@@ -90,20 +140,60 @@ export default {
       visible.value = true
       await nextTick()
       refreshScroll()
+      scrollToCurrent()
     }
 
     function refreshScroll () {
       scrollRef.value.scroll.refresh()
     }
 
+    function scrollToCurrent () {
+      const index = sequenceList.value.findIndex((song) => {
+        return currentSong.value.id === song.id
+      })
+      if (index === -1) {
+        return
+      }
+      const target = listRef.value.childreb[index]
+      scrollRef.value.scroll.scrollToCurrent(target, 300)
+    }
+
+    function removeSong (song) {
+      if (removing.value) {
+        return
+      }
+      removing.value = true
+      store.dispatch('removeSong', song)
+      if (!playlist.value.length) {
+        hide()
+      }
+      setTimeout(() => {
+        removing.value = false
+      }, 300)
+    }
+
+    function showConfirm () {
+      confirmRef.value.show()
+    }
+
+    function confirmClear () {
+      store.diapatch('clearSongList')
+      hide()
+    }
     return {
       visible,
+      removing,
       playlist,
+      listRef,
       scrollRef,
       sequenceList,
       getCurrentIcon,
       show,
       hide,
+      selectItem,
+      removeSong,
+      showConfirm,
+      confirmClear,
       // mode
       modeIcon,
       modeText,
@@ -116,5 +206,5 @@ export default {
 }
 </script>
 
-<style sc>
+<style >
 </style>

@@ -51,7 +51,7 @@
 <script>
 import SongList from '@/components/base/song-list/song-list'
 import Scroll from '@/components/base/sroll/scroll'
-import { mapActions } from 'vuex'
+import { mapActions, mapState } from 'vuex'
 const RESERVED_HEIHGT = 40
 export default {
   name: 'music-list',
@@ -120,8 +120,10 @@ export default {
       }
     },
     scrollStyle () {
+      const bottom = this.playlist.length ? '60px' : '0'
       return {
-        top: `${this.imageHeight}px`
+        top: `${this.imageHeight}px`,
+        bottom
       }
     },
     filterStyle () {
@@ -135,7 +137,10 @@ export default {
       return {
         backdropFilter: `blur(${blur}px)`
       }
-    }
+    },
+    ...mapState([
+      'playlist'
+    ])
   },
   mounted () {
     this.imageHeight = this.$refs.bgImage.clientHeight
