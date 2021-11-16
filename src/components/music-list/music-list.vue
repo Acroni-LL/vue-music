@@ -42,6 +42,7 @@
         <song-list
           :songs='songs'
           @select='selectItem'
+          :rank='rank'
         ></song-list>
       </div>
     </scroll>
@@ -50,7 +51,7 @@
 
 <script>
 import SongList from '@/components/base/song-list/song-list'
-import Scroll from '@/components/base/sroll/scroll'
+import Scroll from '@/components/wrap-scroll'
 import { mapActions, mapState } from 'vuex'
 const RESERVED_HEIHGT = 40
 export default {

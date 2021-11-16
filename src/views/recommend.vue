@@ -23,6 +23,7 @@
               v-for="item in albums"
               class="item"
               :key="item.id"
+              @click="selectItem(item)"
             >
               <div class="icon">
                 <img
@@ -44,13 +45,27 @@
         </div>
       </div>
     </scroll>
+    <router-view v-slot='{Component}'>
+      <transition
+        appear
+        name="slide"
+      >
+        <conponents
+          :is='Component'
+          :data='selectedAlbum'
+        />
+      </transition>
+    </router-view>
   </div>
 </template>
 
 <script>
 import { getRecommend } from '@/service/recommend'
 import Slider from '@/components/base/slider/slider'
-import Scroll from '@/components/base/scroll/scroll'
+import Scroll from '@/components/wrap-scroll'
+import storage from 'good-storage'
+import { ALBUM_KEY } from '@/assets/js/constant'
+
 export default {
   name: 'recommend',
   components: { Slider, Scroll },
@@ -58,7 +73,8 @@ export default {
     return {
       sliders: [],
       albums: [],
-      loadingText: '正在载入...'
+      loadingText: '正在载入...',
+      selectAlbum: null
     }
   },
   computed: {
@@ -69,9 +85,22 @@ export default {
   async created () {
     const result = await getRecommend()
     console.log(result)
+  },
+  methods: {
+    selectItem (album) {
+      this.selectedAlbum = album
+      this.cacheAlbum(album)
+      this.$router.push({
+        path: `/recommend/${album.id}`
+      })
+    },
+    cacheAlbum (album) {
+      storage.session.set(ALBUM_KEY, album)
+    }
   }
 }
 </script>
+
 <style lang="scss" scoped>
 .recommend {
   position: fixed;
