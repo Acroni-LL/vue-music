@@ -9,6 +9,7 @@
       <li
         class="suggest-item"
         v-if="singer"
+        @click="selectSinger(singer)"
       >
         <div class="icon">
           <i class="icon-mine"></i>
@@ -21,6 +22,7 @@
         class="suggest-item"
         v-for="song in songs"
         :key="song.id"
+        @click="selectSong(song)"
       >
         <div class="icon">
           <i class="icon-music">x</i>
@@ -40,7 +42,7 @@
 </template>
 
 <script>
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { search } from '@/service/search'
 import { processSongs } from '@/service/song'
 import usePullUpLoad from './use-pull-up-load'
@@ -54,14 +56,15 @@ export default {
       default: true
     }
   },
-  setup (props) {
+  emits: ['select-song', 'select-singer'],
+  setup (props, { emit }) {
     const singer = ref(null)
     const songs = ref([])
     const hasMore = ref(true)
     const page = ref(1)
     const loadingText = ref('')
     const noResultText = ref('抱歉，暂无搜索结果')
-    const { isPullUpLoad, rootRef } = usePullUpLoad(searchMore)
+    const manualLoading = ref(false)
 
     const loading = computed(() => {
       return !singer.value && !songs.value.length
@@ -75,6 +78,12 @@ export default {
       return isPullUpLoad.value && hasMore.value
     })
 
+    const preventPullUpLoad = computed(() => {
+      return loading.value || manualLoading.value
+    })
+
+    const { isPullUpLoad, rootRef, scroll } = usePullUpLoad(searchMore, preventPullUpLoad)
+
     watch((p => props.query, async (newQuery) => {
       if (!newQuery) {
         return
@@ -82,6 +91,9 @@ export default {
       await searchFirst()
     }))
     async function searchFirst () {
+      if (!props.query) {
+        return
+      }
       page.value = 1
       songs.value = []
       singer.value = null
@@ -93,13 +105,31 @@ export default {
     }
 
     async function searchMore () {
-      if (!hasMore.value) {
+      if (!hasMore.value || !props.query) {
         return
       }
       page.value++
       const result = await search(props.query, page.value, props.showSinger)
       songs.value = songs.value.concat(await processSongs(result.songs))
       hasMore.value = result.hasMore
+      await nextTick()
+      await makeItScrollabke()
+    }
+
+    async function makeItScrollabke () {
+      if (scroll.value.maxScrollY >= -1) {
+        manualLoading.value = true
+        await searchMore()
+        manualLoading.value = false
+      }
+    }
+
+    function selectSong (song) {
+      emit('select-song', song)
+    }
+
+    function selectSinger (singer) {
+      emit('select-singer', singer)
     }
 
     return {
@@ -110,6 +140,8 @@ export default {
       loading,
       noResult,
       pullUpLoading,
+      selectSong,
+      selectSinger,
       // pullUpLoad
       rootRef
     }
