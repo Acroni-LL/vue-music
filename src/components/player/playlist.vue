@@ -62,6 +62,15 @@
               </li>
             </transition-group>
           </scroll>
+          <div class="list-add">
+            <div
+              class="add"
+              @click="showAddSong"
+            >
+              <i class="icon-add"></i>
+              <span class="text"></span>
+            </div>
+          </div>
           <div
             class="list-footer"
             @click.stop='hide'
@@ -77,6 +86,7 @@
         >
 
         </confirm>
+        <add-song ref="addSongRef"></add-song>
       </div>
     </transition>
   </teleport>
@@ -84,6 +94,7 @@
 
 <script>
 import Scroll from '@/components/babse/scroll/scroll'
+import AddSong from '@/components/add-song/add-song'
 import { ref, computed, nextTick } from 'vue'
 import { useStore } from 'vuex'
 import useMode from './use-mode'
@@ -94,7 +105,8 @@ export default {
   name: 'playlist',
   components: {
     Scroll,
-    confirm
+    confirm,
+    AddSong
   },
   setup () {
     const visible = ref(false)
@@ -102,6 +114,7 @@ export default {
     const removing = ref(false)
     const listRef = ref(null)
     const confirmRef = ref(null)
+    const addSongRef = ref(null)
 
     const store = useStore()
     const playlist = computed(() => store.state.playlist)
@@ -180,6 +193,10 @@ export default {
       store.diapatch('clearSongList')
       hide()
     }
+
+    function showAddSong () {
+      addSongRef.value.show()
+    }
     return {
       visible,
       removing,
@@ -191,6 +208,7 @@ export default {
       show,
       hide,
       selectItem,
+      showAddSong,
       removeSong,
       showConfirm,
       confirmClear,

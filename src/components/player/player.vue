@@ -179,6 +179,7 @@ import { formatTime } from '@/assets/js/util'
 import { PLAY_MODE } from '@/assets/js/constant'
 import useCd from './use-cd'
 import MiniPlayer from './mini-player'
+import usePlayHistory from './use-play-history'
 
 export default {
   name: 'player',
@@ -207,6 +208,7 @@ export default {
     const { currentLyric, currentLineNum, playLyric, lyricScrollRef, lyricListRef, stopLyric, pureMusicLyric, playingLyric } = useLyric({ songReady, currentTime })
     const { currentShow, onMiddleTouchStart, onMiddleTouchEnd, onMiddleTouchMove, middleLStyle, middleRStyle } = useMiddleInteractive()
     const { cdWrapperRef, enter, sfterEnter, leave, afterLeave } = useAnimation()
+    const { savePlay } = usePlayHistory()
     // computed
     const playlist = computed(() => store.state.playlist)
     const playIcon = computed(() => {
@@ -303,6 +305,7 @@ export default {
       }
       songReady.value = true
       playLyric()
+      savePlay(currentSong.value)
     }
     function error () {
       songReady.value = true
